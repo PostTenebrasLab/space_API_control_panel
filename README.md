@@ -1,70 +1,56 @@
-# Space API control panel - Ardiono sketch
+# Space API Control Panel
+Arduino project for the control panel of the lab status.
 
-sketch for the control panel of the lab status (a box in the lab with buttons that control open time of the lab...)
+## Evolutions (recent to old)
+### 2024-05-01
+This is currently a box in the entrance of the lab that contains two galvos as a display of how much time the lab is open and how many people are present, with old-school industrial levers to change those values and a few LEDs because LEDs are always nice.
 
-# Build steps
-## Requirements
-To use gcc-avr you need to set:
+It is running on an Arduino Uno with an Ethernet Shield and a PoE module since 2016.
 
-    export BOARD=nan0328        #in this case but make boards will show you all board available
-    export ARDUINODIR=~/your_arduino_install_dir
+A big clean up of the cabling has been done since the last major revision of 2014, and no picture of the previous cablng will be shown here for decency.
 
-and install the following package under ubuntu 12.04
-
-    sudo apt-get install avrdude binutils-avr gcc-avr avr-libc gdb-avr arduino-mk
-
-## Compilation
-
-You can simply run
-
-    make
-    make upload
-
-And voila !
-
-# a) Space API control panel - Ethernet shield
-
+### 2016-01-??
 As of January 2016, Ethernet shield support has been added to the Arduino sketch. This allow the arduino to be autonomous and do HTTP request on it's own. A simple POST request is used for updating the status.
 For the server backend, see  *PTL-Status-API* project.
 
-# b) Space API control panel - python script (outdated)
-
+### 2014-??-??
 The PTL Control Pannel Ardiono is connected by USB to a linux computer.
 A python script retrieves data (serial) from the Arduino and sends a POST request to the PTL Status API on a remote server.
 
-## Python script
+# Build steps
+Prepare the `config.h` file by copying `config.example.h`, and edit the API key.
+Ask your favorite sysadmin if you don't currently have access to it.
 
-* Get the latest version of "ptl_ctrl_pannel_update.py" on Github (in folder python_status_updater)
-* Edit the script and change constant value
-* Install script to system ( /usr/local/bin/ptl_ctrl_pannel_update.py ) if wanted
-
-## Udev rule for Arduino
-
-If you run the script as unpriviledged user (recommanded), you will not be able to access the Arduino. You can use following udev rule (test on Debian). 
-
-/etc/udev/rules.d/70-arduino.rules
-
+## arduino-cli
+### Dependencies
+Install the `Arduino-Bounce` library:
 ```
-#AR 2014-09 Updated comment
-#AR 2013-12 	Added udev rules for PTL Control Panel arduino which is connected to coltello
-# 		For retrieving status information via serial
-# Github project page: https://github.com/PostTenebrasLab/space_API_control_panel
-SUBSYSTEM=="tty" ATTRS{manufacturer}=="Arduino*" SYMLINK+="arduino%n", MODE="0666"
+# Required because git lib installation is apparently "unsafe"
+arduino-cli config set library.enable_unsafe_install true
+arduino-cli lib install --git-url https://github.com/mpflaga/Arduino-Bounce.git
+arduino-cli lib install Ethernet
+``` 
+
+### Build and flash
+You can list the available serial ports on your computer to see which one is right with:
 ```
-
-Note that this will allow all user full access to the Arduino serial interface.
-
-## CRON to run the script
-
-You might want to run the update every x minutes. Example bellow for 2min interval.
-
-Note: this only work properly with the auto-reset on the arduino disabled
-
-```
-#Run python script to get info from PTL Control pannel from Arduino (serial)
-#And update the status by sending a HTTP get request
-*/2 * * * *      nobody timeout 60 /usr/local/bin/ptl_ctrl_pannel_update.py
+arduino-cli  board list
 ```
 
-Note that in this example, the python script is running as user "nobody".
-Also make sure to change script (log file..) as appropriate for your setup.
+Then to compile and flash (update the port):
+```
+arduino-cli compile --fqbn arduino:avr:uno
+# Replace the port by the corresponding one on your computer
+arduino-cli upload --fqbn arduino:avr:uno --port /dev/ttyACM0
+```
+
+## Arduino IDE 2
+### Dependencies
+This project is using the `Arduino-Bounce` library which is a bit old, so it is not present in the library manager of Arduino. The easiest solution is to download and install it manually.
+
+- In the IDE, go to File -> Preferences, retrieve the `Sketchbook location` path and navigate there.
+- Go into the `libraries` folder
+- Download the `Arduino-Bounce` library from https://github.com/mpflaga/Arduino-Bounce.git. Either use git to clone it there, or download the zip version and extract it in this folder. You should now have a `Arduino-Bounce` folder in the `Arduino/libraries/` folder.
+
+### Build
+Use the upload button to compile and flash, make sure you selected the right serial port on the top menu.
